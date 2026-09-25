@@ -1,0 +1,12 @@
+.pane { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.pane-title { font-size: 13px; font-weight: 600; }
+#output { min-height: 320px; max-height: 70vh; margin: 0; }
+#input { max-height: 70vh; }
+/* Keep the toolbar and status line a fixed size so buttons never shift while results stream in. */
+.viewer > .toolbar { min-height: 42px; }
+.viewer > .status { height: 44px; overflow: hidden; }
+#output:empty::before { content: "Scrubbed text appears here."; color: var(--muted); }
+code { font: 13px ui-monospace, Consolas, monospace; }
+.examples button { font-size: 13px; padding: 4px 10px; }
+mark.hit { background: color-mix(in srgb, var(--c) 22%, transparent); outline: 1px solid color-mix(in srgb, var(--c) 60%, transparent); }
+.detections .count { margin-left: auto; color: var(--muted); font-size: 12px; }

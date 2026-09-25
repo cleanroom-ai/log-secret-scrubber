@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- The page may only load files from its own origin: no CDNs, analytics, or uploads. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' blob: 'wasm-unsafe-eval'; worker-src 'self' blob:; connect-src 'self' blob: data:; img-src 'self' blob: data:; style-src 'self'; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <meta name="referrer" content="no-referrer">
+  <title>Log Scrubber — mask secrets & PII in logs, .env, JSON and HAR files</title>
+  <meta name="description" content="Paste or drop logs, stack traces, .env files, JSON or HAR files and mask API keys, tokens, cookies, passwords, emails, IPs and names before you share them. Runs entirely in your browser.">
+  <link rel="icon" href="favicon.ico" sizes="48x48">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+  <link rel="manifest" href="assets/site.webmanifest">
+  <meta name="theme-color" content="#1e1b4b">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Log Scrubber — cleanroom-ai">
+  <meta property="og:description" content="Mask secrets & PII in logs, .env, JSON and HAR files — 100% in your browser, nothing uploaded.">
+  <meta property="og:url" content="https://huggingface.co/spaces/cleanroom-ai/log-secret-scrubber">
+  <meta property="og:image" content="https://cleanroom-ai-log-secret-scrubber.static.hf.space/assets/social-preview.png">
+  <meta property="og:image:width" content="1280">
+  <meta property="og:image:height" content="640">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="stylesheet" href="vendor/core/theme.css">
+  <link rel="stylesheet" href="style.css">
+  <script type="module" src="js/app.js"></script>
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <img class="logo" src="assets/icon.svg" width="40" height="40" alt="">
+      <div>
+        <h1>Log Scrubber <a class="family" href="https://github.com/paragpsawant" target="_blank" rel="noopener noreferrer">cleanroom-ai</a></h1>
+        <p class="tag">Mask secrets and personal data in logs, <code>.env</code>, JSON and HAR files before you share them.</p>
+      </div>
+    </div>
+    <p class="privacy">🔒 Runs 100% in your browser. Your text is never uploaded.</p>
+  </header>
+
+  <main>
+    <section class="workspace">
+      <div class="viewer">
+        <div class="toolbar">
+          <div class="actions">
+            <button id="open" type="button">Open file…</button>
+            <input id="file" type="file" hidden accept=".log,.txt,.env,.json,.har,.yaml,.yml,.ini,.conf,.cfg,.properties,.xml,.csv,.md,text/*,application/json">
+            <span class="examples muted">Examples (fake data):
+              <button type="button" data-example="examples/app.log" data-name="app.log">App log</button>
+              <button type="button" data-example="examples/.env.example-leak" data-name=".env">.env file</button>
+              <button type="button" data-example="examples/network.har" data-name="network.har">HAR file</button>
+            </span>
+          </div>
+          <div class="actions">
+            <button id="copy" type="button" disabled>Copy clean text</button>
+            <button id="download" type="button" class="primary" disabled>Download</button>
+          </div>
+        </div>
+        <p id="status" class="status" role="status" aria-live="polite">Paste text below (<kbd>Ctrl</kbd>+<kbd>V</kbd>), drop a file anywhere, or open one.</p>
+        <div class="grid2">
+          <label class="pane">
+            <span class="pane-title">Original <span class="muted">(stays on this device)</span></span>
+            <textarea id="input" class="code" spellcheck="false" autocomplete="off" placeholder="Paste logs, stack traces, .env, JSON, curl commands, HAR…"></textarea>
+          </label>
+          <div class="pane">
+            <span class="pane-title">Clean <span id="counts" class="muted"></span></span>
+            <pre id="output" class="code" tabindex="0" aria-label="Scrubbed output"></pre>
+          </div>
+        </div>
+      </div>
+
+      <aside class="side">
+        <div class="card">
+          <div class="card-head">
+            <h2>Found</h2>
+            <span class="mini"><button id="select-all" type="button">all</button> · <button id="select-none" type="button">none</button></span>
+          </div>
+          <ul id="detections" class="detections"></ul>
+          <p id="detections-empty" class="muted">Nothing yet.</p>
+        </div>
+
+        <div class="card">
+          <h2>Replace with</h2>
+          <div class="styles">
+            <label><input type="radio" name="mode" value="placeholder" checked> [EMAIL_1]</label>
+            <label><input type="radio" name="mode" value="hash"> [EMAIL:3k9x…]</label>
+            <label><input type="radio" name="mode" value="mask"> ••••</label>
+          </div>
+          <p class="muted">The same value always gets the same placeholder, so the log stays readable and debuggable.</p>
+        </div>
+
+        <details class="card">
+          <summary><h2>What to look for</h2></summary>
+          <div id="categories" class="categories"></div>
+          <label class="field">Also hide these words <span class="muted">(comma-separated)</span>
+            <input id="terms" type="text" placeholder="e.g. Contoso, prod-db-01, my-bucket" autocomplete="off">
+          </label>
+          <label class="check"><input id="use-ner" type="checkbox" checked> Use the on-device AI model for names in prose <span class="muted">(28&nbsp;MB, one-time; rules run instantly first)</span></label>
+        </details>
+      </aside>
+    </section>
+  </main>
+
+  <footer>
+    <p id="engine" class="engine">Rules engine ready — works offline.</p>
+    <p class="muted">Finds 40+ secret formats (cloud keys, tokens, JWTs, cookies, private keys, connection strings), personal data and internal hostnames. HAR files are cleaned structurally: headers, cookies, query strings and bodies. Always review before sharing.</p>
+    <p class="muted">Built by <a href="https://github.com/paragpsawant" target="_blank" rel="noopener noreferrer">Parag Sawant</a> · <a href="https://github.com/paragpsawant/log-secret-scrubber" target="_blank" rel="noopener noreferrer">Source on GitHub</a> · part of cleanroom-ai · Apache-2.0</p>
+  </footer>
+</body>
+</html>

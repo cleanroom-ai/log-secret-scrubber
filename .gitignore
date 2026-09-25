@@ -1,0 +1,8 @@
+node_modules/
+.cache/
+vendor/
+models/
+_*.mjs
+.cache-e2e.*
+
+examples/

@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#312e81"/>
+      <stop offset="1" stop-color="#0f172a"/>
+    </linearGradient>
+    <linearGradient id="scan" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#a5b4fc"/>
+      <stop offset="1" stop-color="#22d3ee"/>
+    </linearGradient>
+  </defs>
+  <!-- Simplified for 16-32px: prompt chevron + one scrubbed line. -->
+  <rect width="64" height="64" rx="14" fill="url(#bg)"/>
+  <rect x="9" y="12" width="46" height="40" rx="6" fill="#0b1020" stroke="url(#scan)" stroke-width="3"/>
+  <path d="M16 21 L22 25 L16 29" fill="none" stroke="#67e8f9" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="13" y="33" width="38" height="11" rx="3" fill="url(#scan)"/>
+  <rect x="15" y="35" width="34" height="7" rx="2" fill="#f8fafc"/>
+</svg>

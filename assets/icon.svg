@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="t">
+  <title id="t">Log Scrubber</title>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#312e81"/>
+      <stop offset="1" stop-color="#0f172a"/>
+    </linearGradient>
+    <linearGradient id="scan" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#a5b4fc"/>
+      <stop offset="1" stop-color="#22d3ee"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="116" fill="url(#bg)"/>
+  <!-- terminal window -->
+  <rect x="92" y="112" width="328" height="288" rx="30" fill="#0b1020" stroke="url(#scan)" stroke-width="14"/>
+  <rect x="99" y="119" width="314" height="44" rx="23" fill="#1e1b4b"/>
+  <rect x="99" y="140" width="314" height="23" fill="#1e1b4b"/>
+  <circle cx="132" cy="141" r="9" fill="#a5b4fc"/>
+  <circle cx="160" cy="141" r="9" fill="#818cf8"/>
+  <circle cx="188" cy="141" r="9" fill="#67e8f9"/>
+  <!-- prompt + log lines -->
+  <path d="M130 204 L156 222 L130 240" fill="none" stroke="#67e8f9" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="172" y="212" width="150" height="20" rx="10" fill="#94a3b8"/>
+  <rect x="130" y="332" width="120" height="20" rx="10" fill="#94a3b8"/>
+  <rect x="266" y="332" width="84" height="20" rx="10" fill="#64748b"/>
+  <!-- the scrubbed line: detection highlight + solid bar -->
+  <rect x="120" y="258" width="272" height="52" rx="14" fill="url(#scan)"/>
+  <rect x="128" y="266" width="256" height="36" rx="9" fill="#f8fafc"/>
+  <rect x="140" y="276" width="116" height="16" rx="8" fill="#0b1020"/>
+  <rect x="264" y="276" width="108" height="16" rx="8" fill="#0b1020"/>
+</svg>

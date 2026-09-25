@@ -1,0 +1,18 @@
+{
+  "name": "log-secret-scrubber",
+  "private": true,
+  "type": "module",
+  "description": "Scrub secrets and PII from logs, .env files, JSON and HAR files, 100% in your browser.",
+  "license": "Apache-2.0",
+  "author": "Parag Sawant (https://github.com/paragpsawant)",
+  "scripts": {
+    "vendor": "node scripts/vendor.mjs",
+    "test": "node --test \"tests/*.test.mjs\"",
+    "serve": "node node_modules/@cleanroom-ai/core/scripts/serve.mjs .",
+    "icons": "node node_modules/@cleanroom-ai/core/scripts/render-icons.mjs . \"Log Scrubber\" \"Mask secrets & PII in logs, .env,|JSON and HAR files before you share.\""
+  },
+  "devDependencies": {
+    "@cleanroom-ai/core": "github:paragpsawant/cleanroom-core#v0.1.2"
+  }
+}
+
