@@ -1,7 +1,7 @@
 // Generate the example inputs. All values are FAKE (made-up names, example domains, test card
 // numbers, random-looking but meaningless keys). Token-shaped values are assembled from parts so the
 // repository never contains a literal key that secret scanners would flag. Run by `npm run vendor`.
-import { writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -88,6 +88,7 @@ const har = {
   },
 };
 
+mkdirSync(dir, { recursive: true });
 writeFileSync(join(dir, "app.log"), log);
 writeFileSync(join(dir, ".env.example-leak"), env);
 writeFileSync(join(dir, "network.har"), JSON.stringify(har, null, 2) + "\n");
