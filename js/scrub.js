@@ -319,6 +319,7 @@ function jsonStructuralSpans(text, cats) {
     parseValue(ws(0));
   };
   const tryCollect = (src, base) => {
+    if (!/^\s*[\[{]/.test(src)) return;
     try { JSON.parse(src.trim()); } catch { return; }
     const lead = src.length - src.trimStart().length;
     collect(src.trim(), base + lead);
