@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!-- The page may only load files from its own origin: no CDNs, analytics, or uploads. -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' blob: 'wasm-unsafe-eval'; worker-src 'self' blob:; connect-src 'self' blob: data:; img-src 'self' blob: data:; style-src 'self'; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <!-- The page may only load its own files: from this origin, or from Hugging Face's CDN (*.hf.co), which serves this Space's large files. No third-party CDNs or analytics, and nothing is ever uploaded (form-action none; the tests assert zero requests carrying data). -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' blob: 'wasm-unsafe-eval'; worker-src 'self' blob:; connect-src 'self' blob: data: https://*.hf.co; img-src 'self' blob: data: https://*.hf.co; style-src 'self'; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
   <meta name="referrer" content="no-referrer">
   <title>Log Scrubber — mask secrets & PII in logs, .env, JSON and HAR files</title>
   <meta name="description" content="Paste or drop logs, stack traces, .env files, JSON or HAR files and mask API keys, tokens, cookies, passwords, emails, IPs and names before you share them. Runs entirely in your browser.">
