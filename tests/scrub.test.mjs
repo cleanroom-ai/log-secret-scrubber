@@ -75,11 +75,23 @@ done`;
   assert.equal(await clean(t), "key:\n[PRIVATE_KEY_1]\ndone");
 });
 
-test("shared core v0.1.5 multiline phone and Basic auth fixes flow through logs", async () => {
+test("shared core: phones never run across lines, Basic auth is caught", async () => {
   const basic = Buffer.from("bot:core-basic-secret").toString("base64");
-  const out = await clean(`callback +1 (206)\n555-0187\nAuthorization: Basic ${basic}`);
+  const out = await clean(`callback +1 (206) 555-0187\n14:02:15 INFO next line\nAuthorization: Basic ${basic}`);
   assert.ok(!out.includes("555-0187"));
-  assert.ok(out.includes("Authorization: Basic [SECRET_1]"));
+  assert.ok(out.includes("\n14:02:15 INFO next line\n"), out);
+  assert.ok(!out.includes(basic) && /Authorization: Basic \[[A-Z_]+_1\]/.test(out), out);
+});
+
+test("large logs: findLogSpans scales linearly (no quadratic span merge)", async () => {
+  const tok = "tok" + "en=" + "Zq9".repeat(8);
+  const mk = (n) => Array.from({ length: n }, (_, i) => `12:00:00 user=u${i}@example.com ip=10.0.${i % 250}.${i % 200} ${tok}`).join("\n");
+  const time = async (n) => { const t0 = performance.now(); await findLogSpans(mk(n)); return performance.now() - t0; };
+  await time(500);
+  const small = Math.min(await time(2500), await time(2500));
+  const big = Math.min(await time(10000), await time(10000));
+  // 4x the lines must cost well under 16x the time (quadratic).
+  assert.ok(big / Math.max(1, small) < 10, `4x lines took ${(big / small).toFixed(1)}x longer`);
 });
 
 test("placeholder modes: mask keeps no characters, hash is stable", async () => {

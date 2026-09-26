@@ -378,9 +378,20 @@ export async function findLogSpans(text, { categories = DEFAULT_LOG_CATEGORIES, 
   // value that fully contains a shorter rule hit (quoted passphrase vs its first word) wins.
   const ruleList = rules.map((s) => ({ ...s, prio: s.label === "POSSIBLE_SECRET" ? 5 : 1 }));
   const structList = structural.map((s) => ({ ...s, prio: s.strong ? 0 : s.category === "identifiers" ? 6 : 3 }));
+  // Rule hits don't overlap each other, so sorted by start a binary search finds the ones inside each
+  // structural span (a nested scan here was O(structural × rules) and froze the tab on big logs).
+  const secretRules = ruleList.filter((r) => r.category === "secrets").sort((a, b) => a.start - b.start);
   for (const st of structList) {
-    if (st.category === "secrets" && ruleList.some((r) => r.category === "secrets" && r.start >= st.start && r.end <= st.end && r.end - r.start < st.end - st.start)) {
-      st.prio = 0;
+    if (st.category !== "secrets") continue;
+    let lo = 0, hi = secretRules.length;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (secretRules[mid].start < st.start) lo = mid + 1;
+      else hi = mid;
+    }
+    for (let i = lo; i < secretRules.length && secretRules[i].start < st.end; i++) {
+      const r = secretRules[i];
+      if (r.end <= st.end && r.end - r.start < st.end - st.start) { st.prio = 0; break; }
     }
   }
   const merged = mergeSpans(resolveOverlaps([...ruleList, ...structList]), nerSpans);
