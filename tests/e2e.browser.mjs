@@ -68,7 +68,7 @@ await page.evaluate(() => {
 });
 const bigLog = Array.from({ length: 20000 }, (_, i) => `2026-09-26 12:00:00 INFO user=u${i}@example.com ip=10.0.${i % 250}.${i % 200} status=200`).join("\n");
 const prevBig = await done();
-await page.locator("#input").fill(bigLog);
+await page.evaluate((v) => { const el = document.querySelector("#input"); el.value = v; el.dispatchEvent(new Event("input", { bubbles: true })); }, bigLog);
 // While the worker scans, the main thread must still run a timer promptly.
 const lag = await page.evaluate(() => new Promise((r) => { const t0 = performance.now(); setTimeout(() => r(performance.now() - t0), 50); }));
 await waitNextScan(prevBig);
