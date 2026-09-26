@@ -75,7 +75,7 @@ done`;
   assert.equal(await clean(t), "key:\n[PRIVATE_KEY_1]\ndone");
 });
 
-test("shared core v0.1.4 multiline phone and Basic auth fixes flow through logs", async () => {
+test("shared core v0.1.5 multiline phone and Basic auth fixes flow through logs", async () => {
   const basic = Buffer.from("bot:core-basic-secret").toString("base64");
   const out = await clean(`callback +1 (206)\n555-0187\nAuthorization: Basic ${basic}`);
   assert.ok(!out.includes("555-0187"));
