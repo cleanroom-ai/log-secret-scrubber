@@ -343,9 +343,23 @@ export async function findLogSpans(text, { categories = DEFAULT_LOG_CATEGORIES, 
   const ruleCats = [...cats].filter((c) => c !== "identifiers");
   const structural = structuralSpans(text, cats);
   const rules = [];
-  for (const s of findSpans(text, ruleCats, customTerms)) {
-    if (s.category === "secrets" && isPlaceholderValue(text.slice(s.start, s.end))) continue;
-    rules.push(s);
+  const lines = text.split("\n");
+  if (text.length > 256 * 1024 || lines.length > 2000) {
+    let offset = 0;
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      for (const s of findSpans(line, ruleCats, customTerms)) {
+        if (s.category === "secrets" && isPlaceholderValue(line.slice(s.start, s.end))) continue;
+        rules.push({ ...s, start: s.start + offset, end: s.end + offset });
+      }
+      offset += line.length + 1;
+      if (i && i % 500 === 0) await new Promise((resolve) => setTimeout(resolve, 0));
+    }
+  } else {
+    for (const s of findSpans(text, ruleCats, customTerms)) {
+      if (s.category === "secrets" && isPlaceholderValue(text.slice(s.start, s.end))) continue;
+      rules.push(s);
+    }
   }
   let nerSpans = [];
   if (ner && (cats.has("person") || cats.has("financial") || cats.has("government_id"))) {
