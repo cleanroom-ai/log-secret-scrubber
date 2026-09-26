@@ -33,7 +33,7 @@ jobs:
       - name: Run the browser test against the live Space
         env:
           E2E_BROWSER: chromium
-          URL: ${{ inputs.url || vars.SPACE_URL || 'https://screenshot-redactor-log-secret-scrubber.static.hf.space/' }}
+          URL: ${{ inputs.url || vars.SPACE_URL || 'https://cleanroom-ai-log-secret-scrubber.static.hf.space/' }}
         run: node tests/e2e.browser.mjs "$URL"
       - uses: actions/upload-artifact@v4
         if: always()

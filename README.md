@@ -117,7 +117,7 @@ node tests/e2e.browser.mjs http://127.0.0.1:8080/   # real browser (Edge/Chrome)
 ## Part of cleanroom-ai
 
 Free tools that clean files **before you share them**, entirely on your device:
-[Screenshot Redactor](https://huggingface.co/spaces/screenshot-redactor/pii-privacy-redaction) ·
+[Screenshot Redactor](https://huggingface.co/spaces/cleanroom-ai/pii-privacy-redaction) ·
 Log Scrubber · PDF Redactor · Audio Redactor · Photo Share-Safe · Video Redactor.
 
 ## Author
