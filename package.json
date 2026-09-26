@@ -12,7 +12,7 @@
     "icons": "node node_modules/@cleanroom-ai/core/scripts/render-icons.mjs . \"Log Scrubber\" \"Mask secrets & PII in logs, .env,|JSON and HAR files before you share.\""
   },
   "devDependencies": {
-    "@cleanroom-ai/core": "github:paragpsawant/cleanroom-core#v0.1.2"
+    "@cleanroom-ai/core": "github:cleanroom-ai/cleanroom-core#v0.1.2"
   }
 }
 

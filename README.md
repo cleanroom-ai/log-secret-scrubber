@@ -33,7 +33,7 @@ tags:
 
 <p align="center"><img src="assets/icon.svg" width="112" height="112" alt="Log Scrubber logo"></p>
 
-[![CI](https://github.com/paragpsawant/log-secret-scrubber/actions/workflows/ci.yml/badge.svg)](https://github.com/paragpsawant/log-secret-scrubber/actions/workflows/ci.yml)
+[![CI](https://github.com/cleanroom-ai/log-secret-scrubber/actions/workflows/ci.yml/badge.svg)](https://github.com/cleanroom-ai/log-secret-scrubber/actions/workflows/ci.yml)
 [![Live demo on Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97%20Live%20demo-Hugging%20Face%20Space-yellow)](https://huggingface.co/spaces/cleanroom-ai/log-secret-scrubber)
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](LICENSE)
 ![Runs in your browser](https://img.shields.io/badge/runs-100%25%20in%20your%20browser-111827)
@@ -87,7 +87,7 @@ text / file ─► structure-aware finders (key=value, JSON, headers, cookies, C
                           ─► non-overlapping spans ─► consistent placeholders ─► review ─► copy / download
 ```
 
-The shared engine is [`@cleanroom-ai/core`](https://github.com/paragpsawant/cleanroom-core), and every
+The shared engine is [`@cleanroom-ai/core`](https://github.com/cleanroom-ai/cleanroom-core), and every
 library and model is bundled with the app. The CI browser test **fails if the page makes an upload or
 contacts any other host**.
 
@@ -114,11 +114,24 @@ node tests/e2e.browser.mjs http://127.0.0.1:8080/   # real browser (Edge/Chrome)
   Add them as custom words, and always review before sharing.
 - Name detection is tuned for English prose; names inside machine fields are handled by field names (`name`, `user`, `author`…).
 
+<!-- cleanroom-ai:family:start -->
 ## Part of cleanroom-ai
 
-Free tools that clean files **before you share them**, entirely on your device:
-[Screenshot Redactor](https://huggingface.co/spaces/cleanroom-ai/pii-privacy-redaction) ·
-Log Scrubber · PDF Redactor · Audio Redactor · Photo Share-Safe · Video Redactor.
+**Clean it before you share it.** Six free privacy tools built on one shared engine. Every model runs
+in your browser, so nothing you open is ever uploaded.
+
+| | Tool | Cleans | Demo | Code |
+|---|---|---|---|---|
+| 🕶️ | **Screenshot Redactor** | API keys, passwords, emails, card numbers, names, faces & QR codes in screenshots | [▶ Try it](https://huggingface.co/spaces/cleanroom-ai/pii-privacy-redaction) | [GitHub](https://github.com/cleanroom-ai/screenshot-redactor) |
+| 🧽 | **Log Scrubber** 📍 *you are here* | tokens, cookies, passwords & PII in logs, `.env`, JSON and HAR files | [▶ Try it](https://huggingface.co/spaces/cleanroom-ai/log-secret-scrubber) | [GitHub](https://github.com/cleanroom-ai/log-secret-scrubber) |
+| 📄 | **PDF Redactor** | PII & secrets in PDFs, flattened and verified so no text survives | [▶ Try it](https://huggingface.co/spaces/cleanroom-ai/pdf-redaction) | [GitHub](https://github.com/cleanroom-ai/pdf-redaction) |
+| 🔊 | **Audio Redactor** | bleeps names, phone & card numbers and secrets in recordings | [▶ Try it](https://huggingface.co/spaces/cleanroom-ai/audio-pii-redaction) | [GitHub](https://github.com/cleanroom-ai/audio-pii-redaction) |
+| 📷 | **Photo Share-Safe** | GPS & hidden EXIF metadata; blurs faces and license plates | [▶ Try it](https://huggingface.co/spaces/cleanroom-ai/photo-exif-privacy) | [GitHub](https://github.com/cleanroom-ai/photo-exif-privacy) |
+| 🎬 | **Video Redactor** | keys, names, emails & faces tracked through screen recordings | [▶ Try it](https://huggingface.co/spaces/cleanroom-ai/video-redaction) | [GitHub](https://github.com/cleanroom-ai/video-redaction) |
+| ⚙️ | **@cleanroom-ai/core** | the shared on-device engine: OCR, secret/PII rules, NER, face detection | — | [GitHub](https://github.com/cleanroom-ai/cleanroom-core) |
+
+All tools: [Hugging Face](https://huggingface.co/cleanroom-ai) · [GitHub](https://github.com/cleanroom-ai)
+<!-- cleanroom-ai:family:end -->
 
 ## Author
 
