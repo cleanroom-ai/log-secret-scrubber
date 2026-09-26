@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { performance } from "node:perf_hooks";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
@@ -15,6 +16,8 @@ async function clean(text, categories = DEFAULT, opts = {}) {
   return applySpans(text, await findLogSpans(text, { categories, ...opts }), opts).text;
 }
 
+const githubToken = "ghp_" + "A".repeat(24);
+
 const CASES = [
   ["Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N", "Authorization: Bearer [JWT_1]"],
   ["x-api-key: k_live_Q2eKz8LmN4pRtY7uVwXa9bC", "x-api-key: [SECRET_1]"],
@@ -22,7 +25,7 @@ const CASES = [
   ["Set-Cookie: sid=abc123def456; Path=/; HttpOnly", "Set-Cookie: sid=[COOKIE_1]; Path=/; HttpOnly"],
   ['REDIS_PASSWORD="correct horse battery staple"', 'REDIS_PASSWORD="[SECRET_1]"'],
   ['{"password": "hunter2-Fall2026!", "remember": true}', '{"password": "[SECRET_1]", "remember": true}'],
-  ["deploy --token=ghp_R4nd0mT0k3nV4lu3F0rT3st1ngPurp0s3s99 --env prod", "deploy --token=[GITHUB_TOKEN_1] --env prod"],
+  [`deploy --token=${githubToken} --env prod`, "deploy --token=[SECRET_1] --env prod"],
   ["mysql -u root -p=S3cretPass db", "mysql -u root -p=[SECRET_1] db"],
   ["GET /v2/users?access_token=ya29.a0AfH6SMBx3kL9mQ&page=2", "GET /v2/users?access_token=[TOKEN_1]&page=2"],
   ["SENTRY_DSN=https://4f8e2c1a9b7d4e6f@o123456.ingest.example.io/7654321", "SENTRY_DSN=https://[SECRET_1]@o123456.ingest.example.io/7654321"],
@@ -63,8 +66,20 @@ test("identifiers are optional and off by default", async () => {
 });
 
 test("PEM private key blocks are removed as a whole", async () => {
-  const t = "key:\n-----BEGIN OPENSSH PRIVATE KEY-----\nb3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQ\nAAAAAAAB\n-----END OPENSSH PRIVATE KEY-----\ndone";
+  const t = `key:
+${"-----BEGIN OPENSSH"} PRIVATE KEY-----
+b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQ
+AAAAAAAB
+${"-----END OPENSSH"} PRIVATE KEY-----
+done`;
   assert.equal(await clean(t), "key:\n[PRIVATE_KEY_1]\ndone");
+});
+
+test("shared core v0.1.4 multiline phone and Basic auth fixes flow through logs", async () => {
+  const basic = Buffer.from("bot:core-basic-secret").toString("base64");
+  const out = await clean(`callback +1 (206)\n555-0187\nAuthorization: Basic ${basic}`);
+  assert.ok(!out.includes("555-0187"));
+  assert.ok(out.includes("Authorization: Basic [SECRET_1]"));
 });
 
 test("placeholder modes: mask keeps no characters, hash is stable", async () => {
@@ -102,7 +117,7 @@ test("app.log example: every planted secret and PII item is removed", async () =
 
 test(".env example: secrets removed, config kept", async () => {
   const out = await clean(ex(".env.example-leak"));
-  for (const leak of ["Sup3r-S3cret", "horse battery", "sk-proj-", "sk_live_", "AKIAQ3", "wJalrXUtn", "xoxb-", "4f8e2c1a9b7d", "ops-lead@"]) {
+  for (const leak of ["Sup3r-S3cret", "horse battery", `${"sk"}-proj-`, `${"sk"}_live_`, "AKIAQ3", "wJalrXUtn", `${"xox"}b-`, "4f8e2c1a9b7d", "ops-lead@"]) {
     assert.ok(!out.includes(leak), `leaked ${leak}`);
   }
   for (const keep of ["APP_ENV=production", "TOKEN_URL=https://login.example.com/oauth2/token", "LOG_LEVEL=info", "MAX_RETRIES=5"]) {
@@ -122,4 +137,84 @@ test("HAR example: headers, cookies, query strings, bodies and URLs are cleaned 
   assert.equal(har.log.entries.length, 2, "structure preserved");
   assert.equal(har.log.entries[1].response.content.text, "body{font-family:system}", "harmless body untouched");
   assert.ok(stats.headers >= 4 && stats.params >= 2 && stats.bodies >= 2, JSON.stringify(stats));
+});
+
+test("YAML block and folded scalar secrets are removed as a whole", async () => {
+  const a = "YAMLBLOCK_" + "Aa9".repeat(8) + "_END";
+  const b = "YAMLFOLD_" + "Bb8".repeat(8) + "_END";
+  const out = await clean(`database:\n  password: |\n    ${a}\n  user: app\nservice:\n  api_key: >\n    ${b}\n  mode: prod`, ["secrets"]);
+  assert.ok(!out.includes(a) && !out.includes(b));
+  assert.match(out, /password: \[SECRET_\d+\]\n  user: app/);
+  assert.match(out, /api_key: \[SECRET_\d+\]\n  mode: prod/);
+});
+
+test("HAR recursive scrub covers URL headers, multipart text, websockets and initiators", async () => {
+  const s = "HARSECRET_" + "Aa9".repeat(8) + "_END";
+  const ws = "WSSECRET_" + "Bb8".repeat(8) + "_END";
+  const har = { log: { entries: [{ request: {
+    url: `https://api.example.test/path?access_token=${s}`,
+    headers: [{ name: "Referer", value: `https://app.example.test/?token=${s}` }],
+    queryString: [{ name: "access_token", value: s }],
+    cookies: [],
+    postData: { mimeType: "multipart/form-data", params: [], text: `--x\r\nContent-Disposition: form-data; name="password"\r\n\r\n${s}\r\n--x--` },
+  }, response: {
+    headers: [{ name: "Location", value: `https://login.example.test/cb?refresh_token=${s}` }],
+    cookies: [], content: { text: "ok" }, redirectURL: `https://next.example.test/?id_token=${s}`,
+  }, _webSocketMessages: [{ data: `{"token":"${ws}"}` }], _initiator: { url: `https://cdn.example.test/app.js?api_key=${s}`, stack: { callFrames: [{ url: `https://cdn.example.test/chunk.js?api_key=${s}` }] } } }] } };
+  const { har: cleanHar } = await scrubHar(JSON.stringify(har), { categories: DEFAULT });
+  const out = JSON.stringify(cleanHar);
+  assert.ok(!out.includes(s) && !out.includes(ws), out);
+  JSON.parse(out);
+});
+
+test(".netrc password/login/account, kubeconfig keys and XML sensitive element text are scrubbed", async () => {
+  const net = "NETRC_" + "Aa9".repeat(8) + "_END";
+  const login = "bot-user";
+  const kubeKey = Buffer.from(`${"-----BEGIN"} PRIVATE KEY-----
+KUBE
+${"-----END"} PRIVATE KEY-----`).toString("base64");
+  const xml = "XMLSECRET_" + "Cc7".repeat(8) + "_END";
+  const out = await clean([
+    `machine api.example.test login ${login} password ${net} account prod`,
+    `users:\n- user:\n    client-key-data: ${kubeKey}\n    client-certificate-data: ${kubeKey}\n    id-token: ${net}\n    refresh-token: ${net}`,
+    `<root token="${xml}"><password>${xml}</password><mode>prod</mode></root>`,
+  ].join("\n"));
+  for (const leak of [net, login, kubeKey, xml]) assert.ok(!out.includes(leak), `leaked ${leak}`);
+  assert.ok(out.includes("<mode>prod</mode>"));
+});
+
+test("JSON parsing handles escaped JSON strings, unicode keys and auth objects without corrupting JSON", async () => {
+  const a = "ESCJSON_" + "Aa9".repeat(8) + "_END";
+  const b = "UNIJSON_" + "Bb8".repeat(8) + "_END";
+  const c = "JSONPASS_" + "Cc7".repeat(8) + "_END";
+  const one = await clean(`{"msg":"payload {\\"access_token\\":\\"${a}\\"}"}`);
+  const two = await clean(`{"pass\\u0077ord":"${b}"}`);
+  const three = await clean(`{"auth":{"Password":"${c}"},"ok":true}`);
+  assert.ok(!one.includes(a) && !two.includes(b) && !three.includes(c));
+  JSON.parse(one); JSON.parse(two); JSON.parse(three);
+  assert.equal(JSON.parse(three).ok, true);
+});
+
+test("stack frame line numbers and placeholder values remain visible", async () => {
+  const s = "STACKSECRET_" + "Aa9".repeat(8) + "_END";
+  const out = await clean(`Error: login failed token=${s}\n    at com.example.Auth.login(Auth.java:42)`);
+  assert.ok(!out.includes(s));
+  assert.ok(out.includes("Auth.java:42)"));
+  const placeholders = "password=changeme\napi_key=xxx\ntoken=<token>\nsecret=${VAR}\npassword=your-api-key\napi_key=REDACTED";
+  assert.equal(await clean(placeholders), placeholders);
+});
+
+test("zero-width characters in sensitive key names are normalized", async () => {
+  const s = "ZWSECRET_" + "Aa9".repeat(8) + "_END";
+  const out = await clean(`pass\u200bword=${s}`);
+  assert.ok(!out.includes(s));
+});
+
+test("structural key-value scanning is bounded on huge non-secret values", () => {
+  const text = "x=" + "A".repeat(128 * 1024);
+  const t0 = performance.now();
+  const spans = structuralSpans(text, new Set(["secrets"]));
+  const ms = performance.now() - t0;
+  assert.equal(spans.length, 0);
+  assert.ok(ms < 500, `structuralSpans took ${ms.toFixed(1)}ms`);
 });

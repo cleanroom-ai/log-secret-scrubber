@@ -9,7 +9,9 @@ const els = {
   copy: $("#copy"), download: $("#download"), file: $("#file"), open: $("#open"),
 };
 const COLORS = { ...CATEGORY_COLORS, identifiers: "#64748b" };
-const state = { fileName: "scrubbed.txt", spans: [], groups: [], off: new Set(), mode: "placeholder", har: null, run: 0, ner: null };
+const GROUP_PAGE = 250;
+const MAX_HIGHLIGHTED_SPANS = 2000;
+const state = { fileName: "scrubbed.txt", spans: [], groups: [], off: new Set(), mode: "placeholder", har: null, run: 0, ner: null, groupLimit: GROUP_PAGE };
 
 // ------------------------------------------------------------------ optional name model (worker)
 let worker = null;
@@ -81,6 +83,7 @@ async function scan() {
 async function apply(spans, t0, run, namesPending) {
   if (run !== state.run) return;
   state.spans = spans.map((s, i) => ({ ...s, id: i }));
+  state.groupLimit = GROUP_PAGE;
   // Test hook: the run number of the last fully finished scan.
   if (!namesPending) document.body.dataset.scanDone = String(run);
   const secs = ((performance.now() - t0) / 1000).toFixed(2);
@@ -112,23 +115,27 @@ function render() {
   }
   els.empty.textContent = "Nothing yet.";
   const sel = selectedIds();
-  const { pieces } = applySpans(text, state.spans, { mode: state.mode, selected: sel });
-  const frag = document.createDocumentFragment();
-  for (const p of pieces) {
-    if (p.tag === undefined) {
-      frag.append(p.text);
-      continue;
+  if (state.spans.length > MAX_HIGHLIGHTED_SPANS) {
+    els.output.textContent = applySpans(text, state.spans, { mode: state.mode, selected: sel }).text;
+  } else {
+    const { pieces } = applySpans(text, state.spans, { mode: state.mode, selected: sel });
+    const frag = document.createDocumentFragment();
+    for (const p of pieces) {
+      if (p.tag === undefined) {
+        frag.append(p.text);
+        continue;
+      }
+      const m = document.createElement("mark");
+      m.className = "hit";
+      m.style.setProperty("--c", COLORS[p.span.category] || "#64748b");
+      m.title = prettyLabel(p.span.label);
+      m.textContent = p.tag;
+      frag.append(m);
     }
-    const m = document.createElement("mark");
-    m.className = "hit";
-    m.style.setProperty("--c", COLORS[p.span.category] || "#64748b");
-    m.title = prettyLabel(p.span.label);
-    m.textContent = p.tag;
-    frag.append(m);
+    els.output.replaceChildren(frag);
   }
-  els.output.replaceChildren(frag);
 
-  // Sidebar: one row per unique value.
+  // Sidebar: one row per unique value, capped and delegated for large logs.
   const groups = new Map();
   for (const s of state.spans) {
     const k = groupKey(s);
@@ -136,14 +143,12 @@ function render() {
     groups.get(k).n++;
   }
   state.groups = [...groups.values()];
-  els.list.replaceChildren(...state.groups.map((g) => {
+  const visible = state.groups.slice(0, state.groupLimit);
+  const rows = visible.map((g) => {
     const li = document.createElement("li");
     const label = document.createElement("label");
     const cb = Object.assign(document.createElement("input"), { type: "checkbox", checked: !state.off.has(g.key) });
-    cb.addEventListener("change", () => {
-      cb.checked ? state.off.delete(g.key) : state.off.add(g.key);
-      render();
-    });
+    cb.dataset.key = g.key;
     const dot = Object.assign(document.createElement("span"), { className: "dot" });
     dot.style.background = COLORS[g.s.category] || "#64748b";
     label.append(cb, dot,
@@ -152,7 +157,18 @@ function render() {
       Object.assign(document.createElement("span"), { className: "count", textContent: g.n > 1 ? `×${g.n}` : "" }));
     li.append(label);
     return li;
-  }));
+  });
+  if (state.groups.length > visible.length) {
+    const li = document.createElement("li");
+    const btn = Object.assign(document.createElement("button"), {
+      type: "button",
+      textContent: `Show ${Math.min(GROUP_PAGE, state.groups.length - visible.length)} more of ${state.groups.length}`,
+    });
+    btn.dataset.action = "show-more";
+    li.append(btn);
+    rows.push(li);
+  }
+  els.list.replaceChildren(...rows);
   els.empty.hidden = state.groups.length > 0;
   const on = state.spans.filter((s) => sel.has(s.id)).length;
   els.counts.textContent = state.spans.length ? `— ${on} of ${state.spans.length} hidden` : "";
@@ -203,6 +219,18 @@ document.querySelectorAll("input[name=mode]").forEach((r) => r.addEventListener(
   state.mode = r.value;
   render();
 }));
+els.list.addEventListener("change", (e) => {
+  if (e.target instanceof HTMLInputElement && e.target.dataset.key) {
+    e.target.checked ? state.off.delete(e.target.dataset.key) : state.off.add(e.target.dataset.key);
+    render();
+  }
+});
+els.list.addEventListener("click", (e) => {
+  if (e.target instanceof HTMLButtonElement && e.target.dataset.action === "show-more") {
+    state.groupLimit += GROUP_PAGE;
+    render();
+  }
+});
 $("#select-all").addEventListener("click", () => { state.off.clear(); render(); });
 $("#select-none").addEventListener("click", () => { state.groups.forEach((g) => state.off.add(g.key)); render(); });
 

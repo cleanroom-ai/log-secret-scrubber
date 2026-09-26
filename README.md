@@ -73,7 +73,10 @@ the very file you're trying to protect. This one runs in the browser tab.
 - **Consistent placeholders** keep logs debuggable: the same value always becomes the same `[EMAIL_1]`.
   Or choose stable hashes (`[EMAIL:3k9xq2a]`) or plain masking (`••••`).
 - **HAR files cleaned structurally**: auth headers, cookies (harmless UI prefs like `theme=dark` are kept),
-  query strings, form fields, nested JSON bodies and URLs. Binary bodies are dropped. Output stays valid HAR.
+  query strings, form fields, nested JSON bodies, redirects, WebSocket messages, initiator URLs and every
+  secret-looking string field. Binary bodies are dropped. Output stays valid HAR.
+- **Log/config grammar coverage** includes YAML block/folded scalars, kubeconfig credentials, `.netrc`,
+  sensitive XML element text, escaped JSON-in-JSON strings and zero-width-obfuscated key names.
 - **Review everything**: untick false positives. What you see is exactly what you copy or download.
 - **Private and offline**: the rules are instant; the 28 MB name model loads once in the background and is
   cached.
@@ -113,6 +116,8 @@ node tests/e2e.browser.mjs http://127.0.0.1:8080/   # real browser (Edge/Chrome)
 - Custom in-house token formats without a telling key name (`password=`, `token:`…) or high randomness can be missed.
   Add them as custom words, and always review before sharing.
 - Name detection is tuned for English prose; names inside machine fields are handled by field names (`name`, `user`, `author`…).
+- For responsiveness, very large single-line non-JSON values are skipped by the structural key/value scanner, and
+  the findings sidebar initially renders the first 250 unique values with a "show more" control.
 
 <!-- cleanroom-ai:family:start -->
 ## Part of cleanroom-ai
