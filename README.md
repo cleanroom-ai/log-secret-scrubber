@@ -117,7 +117,8 @@ node tests/e2e.browser.mjs http://127.0.0.1:8080/   # real browser (Edge/Chrome)
   Add them as custom words, and always review before sharing.
 - Name detection is tuned for English prose; names inside machine fields are handled by field names (`name`, `user`, `author`…).
 - For responsiveness, very large single-line non-JSON values are skipped by the structural key/value scanner, and
-  the findings sidebar initially renders the first 250 unique values with a "show more" control.
+  the findings sidebar initially renders the first 250 unique values with a "show more" control. Very large
+  scrubbed outputs show a bounded preview in the page; copy/download still exports the full scrubbed log.
 
 <!-- cleanroom-ai:family:start -->
 ## Part of cleanroom-ai

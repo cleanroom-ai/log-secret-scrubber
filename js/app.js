@@ -11,6 +11,7 @@ const els = {
 const COLORS = { ...CATEGORY_COLORS, identifiers: "#64748b" };
 const GROUP_PAGE = 250;
 const MAX_HIGHLIGHTED_SPANS = 2000;
+const LARGE_PREVIEW_CHARS = 200000;
 const state = { fileName: "scrubbed.txt", spans: [], groups: [], off: new Set(), mode: "placeholder", har: null, run: 0, ner: null, groupLimit: GROUP_PAGE };
 
 // ------------------------------------------------------------------ optional name model (worker)
@@ -116,7 +117,10 @@ function render() {
   els.empty.textContent = "Nothing yet.";
   const sel = selectedIds();
   if (state.spans.length > MAX_HIGHLIGHTED_SPANS) {
-    els.output.textContent = applySpans(text, state.spans, { mode: state.mode, selected: sel }).text;
+    const cut = text.length > LARGE_PREVIEW_CHARS ? Math.max(text.lastIndexOf("\n", LARGE_PREVIEW_CHARS), LARGE_PREVIEW_CHARS) : text.length;
+    const previewSpans = state.spans.filter((s) => s.end <= cut);
+    els.output.textContent = applySpans(text.slice(0, cut), previewSpans, { mode: state.mode, selected: sel }).text +
+      (cut < text.length ? `\n\n[Preview truncated for responsiveness. Copy or download exports the full ${state.spans.length}-finding scrubbed log.]` : "");
   } else {
     const { pieces } = applySpans(text, state.spans, { mode: state.mode, selected: sel });
     const frag = document.createDocumentFragment();
