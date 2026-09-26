@@ -60,5 +60,25 @@ await page.locator("input[name=mode][value=mask]").check();
 assert.ok(!(await page.locator("#output").innerText()).includes("jane.doe"), "mask mode hides value");
 console.log("interactive: untick + mask mode OK");
 
+// PERF-002: a big log scans off the main thread — the page keeps responding and never blocks for seconds.
+await page.evaluate(() => {
+  window.__longest = 0;
+  new PerformanceObserver((l) => { for (const e of l.getEntries()) window.__longest = Math.max(window.__longest, e.duration); })
+    .observe({ type: "longtask", buffered: false });
+});
+const bigLog = Array.from({ length: 20000 }, (_, i) => `2026-09-26 12:00:00 INFO user=u${i}@example.com ip=10.0.${i % 250}.${i % 200} status=200`).join("\n");
+const prevBig = await done();
+await page.locator("#input").fill(bigLog);
+// While the worker scans, the main thread must still run a timer promptly.
+const lag = await page.evaluate(() => new Promise((r) => { const t0 = performance.now(); setTimeout(() => r(performance.now() - t0), 50); }));
+await waitNextScan(prevBig);
+const longest = await page.evaluate(() => window.__longest);
+const bigStatus = await page.locator("#status").innerText();
+console.log(`big log: ${bigStatus} | timer lag ${lag.toFixed(0)}ms | longest main-thread task ${longest.toFixed(0)}ms`);
+assert.match(bigStatus, /Found \d+ items/);
+assert.ok(lag < 1500, `main thread blocked during scan (${lag.toFixed(0)}ms timer lag)`);
+assert.ok(longest < 3000, `longest main-thread task ${longest.toFixed(0)}ms`);
+assert.ok(!(await page.locator("#output").innerText()).slice(0, 5000).includes("u1@example.com"), "big log output leaked an email");
+
 await app.finish();
 process.exit(0);

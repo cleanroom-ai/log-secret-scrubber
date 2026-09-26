@@ -14,10 +14,13 @@ const MAX_HIGHLIGHTED_SPANS = 2000;
 const LARGE_PREVIEW_CHARS = 200000;
 const state = { fileName: "scrubbed.txt", spans: [], groups: [], off: new Set(), mode: "placeholder", har: null, run: 0, ner: null, groupLimit: GROUP_PAGE };
 
-// ------------------------------------------------------------------ optional name model (worker)
+// ------------------------------------------------------------------ scanning worker
+// Rules, structural parsing and the optional name model all run off the main thread, so a
+// multi-megabyte log never freezes the page.
 let worker = null;
 const pending = new Map();
-function nerProxy() {
+let seq = 0;
+function getWorker() {
   if (!worker) {
     worker = new Worker(new URL("./worker.js", import.meta.url), { type: "module" });
     worker.onmessage = ({ data: m }) => {
@@ -26,19 +29,27 @@ function nerProxy() {
       else if (pending.has(m.id)) {
         const p = pending.get(m.id);
         pending.delete(m.id);
-        m.type === "result" ? p.resolve(m.spans) : p.reject(new Error(m.text));
-      }
+        m.type === "error" ? p.reject(new Error(m.text)) : p.resolve(m.result);
+      } else if (m.type === "error" && m.id === undefined) setEngine(`Name model unavailable: ${m.text}`, "warn");
+    };
+    worker.onerror = (e) => {
+      for (const p of pending.values()) p.reject(new Error(e.message || "worker failed"));
+      pending.clear();
+      worker = null;
     };
   }
-  let n = 0;
-  return {
-    find: (text, cats) => new Promise((resolve, reject) => {
-      const id = `${Date.now()}-${n++}`;
-      pending.set(id, { resolve, reject });
-      worker.postMessage({ type: "ner", id, text, categories: [...cats] });
-    }),
-  };
+  return worker;
 }
+function call(type, payload) {
+  return new Promise((resolve, reject) => {
+    const id = `${type}-${++seq}`;
+    pending.set(id, { resolve, reject });
+    getWorker().postMessage({ type, id, ...payload });
+  });
+}
+const inWorker = typeof Worker === "function";
+const scanSpans = (text, opts) => (inWorker ? call("scan", { text, ...opts }) : findLogSpans(text, opts));
+const cleanHar = (text, opts) => (inWorker ? call("har", { text, ...opts }) : scrubHar(text, opts));
 
 // ------------------------------------------------------------------------------ scanning
 async function scan() {
@@ -59,7 +70,7 @@ async function scan() {
   try {
     if (looksLikeHar(text)) {
       // HAR: clean structurally (headers, cookies, params, nested JSON bodies); show exactly that.
-      const { har, stats } = await scrubHar(text, { categories, customTerms, mode: state.mode });
+      const { har, stats } = await cleanHar(text, { categories, customTerms, mode: state.mode });
       state.har = { har, stats, text: JSON.stringify(har, null, 2) };
       if (run !== state.run) return;
       state.spans = [];
@@ -71,10 +82,9 @@ async function scan() {
       return;
     }
     // Pass 1: rules only (instant). Pass 2: add names from the on-device model when it's ready.
-    await apply(await findLogSpans(text, { categories, customTerms }), t0, run, withNames);
+    await apply(await scanSpans(text, { categories, customTerms }), t0, run, withNames);
     if (withNames && run === state.run) {
-      const ner = (state.ner ??= nerProxy());
-      await apply(await findLogSpans(text, { categories, customTerms, ner }), t0, run, false);
+      await apply(await scanSpans(text, { categories, customTerms, withNames: true }), t0, run, false);
     }
   } catch (e) {
     if (run === state.run) setStatus(`Scan failed: ${e.message}`, "warn");
@@ -283,7 +293,4 @@ function flash(b, t) {
 const mb = (b) => (b / 1048576).toFixed(1);
 setEngine("✓ Rules engine ready — works offline", "ok");
 // Warm the name model in the background so names are ready by the first paste.
-if (els.useNer.checked) {
-  state.ner = nerProxy();
-  worker.postMessage({ type: "warmup" });
-}
+if (els.useNer.checked && inWorker) getWorker().postMessage({ type: "warmup" });
